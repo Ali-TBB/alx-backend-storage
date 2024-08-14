@@ -47,8 +47,8 @@ class Cache:
                 The retrieved value, or None if the key does not exist.
 
             """
-            data = self._redis.get(key)
-            
+            client = self._redis
+            data = client.get(key)
             if not data:
                 return
             if fn is int:
