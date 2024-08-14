@@ -3,6 +3,25 @@
 from typing import Callable, Optional, Union, Any
 import redis
 import uuid
+from functools import wraps
+
+
+def count_calls(method: callable) -> callable:
+    """
+
+    Args:
+        method (callable): _description_
+
+    Returns:
+        callable: _description_
+    """
+    @wraps(method)
+    def warpper(self: Any, *args: Any, **kwargs: Any) -> Any:
+        """ _description_
+        """
+        self._redis.incr(method.__qualname__)
+        return method(self, *args, **kwargs)
+    return warpper
 
 
 class Cache:
@@ -34,30 +53,31 @@ class Cache:
         key = str(uuid.uuid4())
         self._redis.set(key, data)
         return key
-    
+
     def get(self, key: str, fn: Optional[Callable] = None) -> Any:
-            """
-            Retrieves the value associated with the given key from Redis.
+        """
+        Retrieves the value associated with the given key from Redis.
 
-            Args:
-                key (str): The key to retrieve the value for.
-                fn (Optional[Callable]): An optional function to apply to the retrieved value.
+        Args:
+            key (str): The key to retrieve the value for.
+            fn (Optional[Callable]): An optional function
+            to apply to the retrieved value.
 
-            Returns:
-                The retrieved value, or None if the key does not exist.
+        Returns:
+            The retrieved value, or None if the key does not exist.
 
-            """
-            client = self._redis
-            data = client.get(key)
-            if not data:
-                return
-            if fn is int:
-                return self.get_int(data)
-            if fn is str:
-                return self.get_str(data)
-            if Callable(fn):
-                return fn(data)
-            return data
+        """
+        client = self._redis
+        data = client.get(key)
+        if not data:
+            return
+        if fn is int:
+            return self.get_int(data)
+        if fn is str:
+            return self.get_str(data)
+        if Callable(fn):
+            return fn(data)
+        return data
 
     def get_str(self, data: bytes) -> str:
         """ Converts bytes to string
