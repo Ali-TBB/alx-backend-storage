@@ -1,135 +1,96 @@
 #!/usr/bin/env python3
-""" Redis """
-from typing import Callable, Optional, Union, Any
+""" Redis client module
+"""
 import redis
-import uuid
+from uuid import uuid4
 from functools import wraps
+from typing import Any, Callable, Optional, Union
 
 
-def count_calls(method: callable) -> callable:
+def count_calls(method: Callable) -> Callable:
+    """ Decorator for Cache class methods to track call count
     """
-
-    Args:
-        method (callable): _description_
-
-    Returns:
-        callable: _description_
-    """
-
     @wraps(method)
-    def warpper(self: Any, *args: Any, **kwargs: Any) -> Any:
-        """A wrapper function that increments a Redis key and calls the original method.
-
-        This function is used as a decorator to track the number of times a method is called.
-        It increments a Redis key with the qualified name of the method and then calls the original method.
-
-        Args:
-            self (Any): The instance of the class.
-            *args (Any): Variable length argument list.
-            **kwargs (Any): Arbitrary keyword arguments.
-
-        Returns:
-            Any: The return value of the original method.
-
+    def wrapper(self: Any, *args, **kwargs) -> str:
+        """ Wraps called method and adds its call count redis before execution
         """
         self._redis.incr(method.__qualname__)
         return method(self, *args, **kwargs)
+    return wrapper
 
-    return warpper
 
-
-def call_history(method: callable) -> callable:
-    """Decorator that logs the inputs and outputs of a method to Redis.
-
-    Args:
-        method (callable): The method to be decorated.
-
-    Returns:
-        callable: The decorated method.
-
+def call_history(method: Callable) -> Callable:
+    """ Decorator for Cache class method to track args
     """
-
     @wraps(method)
-    def warpper(self: Any, *args: Any, **kwargs: Any) -> Any:
-        """Wrapper function that logs the inputs and outputs of the method.
-
-        Args:
-            self (Any): The instance of the class.
-            *args (Any): The positional arguments passed to the method.
-            **kwargs (Any): The keyword arguments passed to the method.
-
-        Returns:
-            Any: The output of the method.
-
+    def wrapper(self: Any, *args) -> str:
+        """ Wraps called method and tracks its passed argument by storing
+            them to redis
         """
-        self._redis.rpush(f"{method.__qualname__}:inputs", str(args))
+        self._redis.rpush(f'{method.__qualname__}:inputs', str(args))
         output = method(self, *args)
-        self._redis.rpush(f"{method.__qualname__}:outputs", output)
+        self._redis.rpush(f'{method.__qualname__}:outputs', output)
         return output
+    return wrapper
 
-    return warpper
+
+def replay(fn: Callable) -> None:
+    """ Check redis for how many times a function was called and display:
+            - How many times it was called
+            - Function args and output for each call
+    """
+    client = redis.Redis()
+    calls = client.get(fn.__qualname__).decode('utf-8')
+    inputs = [input.decode('utf-8') for input in
+              client.lrange(f'{fn.__qualname__}:inputs', 0, -1)]
+    outputs = [output.decode('utf-8') for output in
+               client.lrange(f'{fn.__qualname__}:outputs', 0, -1)]
+    print(f'{fn.__qualname__} was called {calls} times:')
+    for input, output in zip(inputs, outputs):
+        print(f'{fn.__qualname__}(*{input}) -> {output}')
 
 
 class Cache:
+    """ Caching class
     """
-    A class that represents a cache using Redis.
-
-    Attributes:
-        _redis (redis.StrictRedis): The Redis client object.
-
-    Methods:
-        store(data): Stores the given data in the cache
-        and returns the generated key.
-    """
-
-    def __init__(self):
+    def __init__(self) -> None:
+        """ Initialize new cache object
+        """
         self._redis = redis.Redis()
         self._redis.flushdb()
 
+    @call_history
     @count_calls
-    def store(self, data: Union[str, bytes, int, float]) -> str:
+    def store(self, data: Union[str, bytes,  int,  float]) -> str:
+        """ Stores data in redis with randomly generated key
         """
-        Stores the given data in the cache.
-
-        Args:
-            data: The data to be stored in the cache.
-
-        Returns:
-            str: The generated key for the stored data.
-        """
-        key = str(uuid.uuid4())
-        self._redis.set(key, data)
+        key = str(uuid4())
+        client = self._redis
+        client.set(key, data)
         return key
 
     def get(self, key: str, fn: Optional[Callable] = None) -> Any:
-        """
-        Retrieves the value associated with the given key from Redis.
-
-        Args:
-            key (str): The key to retrieve the value for.
-            fn (Optional[Callable]): An optional function
-            to apply to the retrieved value.
-
-        Returns:
-            The retrieved value, or None if the key does not exist.
-
+        """ Gets key's value from redis and converts
+            result byte  into correct data type
         """
         client = self._redis
-        data = client.get(key)
-        if not data:
+        value = client.get(key)
+        if not value:
             return
         if fn is int:
-            return self.get_int(data)
+            return self.get_int(value)
         if fn is str:
-            return self.get_str(data)
-        if Callable(fn):
-            return fn(data)
-        return data
+            return self.get_str(value)
+        if callable(fn):
+            return fn(value)
+        return value
 
     def get_str(self, data: bytes) -> str:
-        """Converts bytes to string"""
-        return data.decode("utf-8")
+        """ Converts bytes to string
+        """
+        return data.decode('utf-8')
 
     def get_int(self, data: bytes) -> int:
-        """Converts bytes to integers"""
+        """ Converts bytes to integers
+        """
         return int(data)
