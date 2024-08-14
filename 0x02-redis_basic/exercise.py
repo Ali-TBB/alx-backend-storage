@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """ Redis """
+from typing import Union
 import redis
 import uuid
 
@@ -19,7 +20,7 @@ class Cache:
     def __init__(self):
         self._redis = redis.StrictRedis(host='localhost', port=6379, db=0)
 
-    def store(self, data) -> str:
+    def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         Stores the given data in the cache.
 
