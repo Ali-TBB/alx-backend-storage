@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """ Redis """
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Any
 import redis
 import uuid
 
@@ -35,7 +35,7 @@ class Cache:
         self._redis.set(key, data)
         return key
     
-    def get(self, key: str, fn: Optional[Callable] = None):
+    def get(self, key: str, fn: Optional[Callable] = None) -> Any:
             """
             Retrieves the value associated with the given key from Redis.
 
