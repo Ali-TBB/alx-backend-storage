@@ -50,7 +50,7 @@ class Cache:
             data = self._redis.get(key)
             
             if not data:
-                return None
+                return
             if fn is int:
                 return self.get_int(data)
             if fn is str:
