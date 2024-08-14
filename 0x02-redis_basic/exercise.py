@@ -24,10 +24,28 @@ def count_calls(method: callable) -> callable:
     return warpper
 
 def call_history(method : callable) -> callable:
-    """ _description_"""
+    """Decorator that logs the inputs and outputs of a method to Redis.
+
+    Args:
+        method (callable): The method to be decorated.
+
+    Returns:
+        callable: The decorated method.
+
+    """
     @wraps(method)
     def warpper(self:Any, *args:Any, **kwargs:Any) -> Any:
-        """ _description_"""
+        """Wrapper function that logs the inputs and outputs of the method.
+
+        Args:
+            self (Any): The instance of the class.
+            *args (Any): The positional arguments passed to the method.
+            **kwargs (Any): The keyword arguments passed to the method.
+
+        Returns:
+            Any: The output of the method.
+
+        """
         self._redis.rpush(f'{method.__qualname__}:inputs', str(args))
         output = method(self, *args)
         self._redis.rpush(f'{method.__qualname__}:outputs', output)
