@@ -9,8 +9,6 @@ import requests
 redis_client = redis.Redis()
 
 
-
-
 def url_count(method: Callable) -> Callable:
     """counts how many times an url is accessed"""
     @wraps(method)
@@ -25,15 +23,11 @@ def url_count(method: Callable) -> Callable:
     return wrapper
 
 
-
-
 @url_count
 def get_page(url: str) -> str:
     """get a page and cache value"""
     response = requests.get(url)
     return response.text
-
-
 
 
 if __name__ == "__main__":
