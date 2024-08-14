@@ -23,6 +23,16 @@ def count_calls(method: callable) -> callable:
         return method(self, *args, **kwargs)
     return warpper
 
+def call_history(method : callable) -> callable:
+    """ _description_"""
+    @wraps(method)
+    def warpper(self:Any, *args:Any, **kwargs:Any) -> Any:
+        """ _description_"""
+        self._redis.rpush(f'{method.__qualname__}:inputs', str(args))
+        output = method(self, *args)
+        self._redis.rpush(f'{method.__qualname__}:outputs', output)
+        return output
+    return warpper
 
 class Cache:
     """
