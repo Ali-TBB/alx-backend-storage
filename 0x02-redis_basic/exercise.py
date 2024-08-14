@@ -15,15 +15,30 @@ def count_calls(method: callable) -> callable:
     Returns:
         callable: _description_
     """
+
     @wraps(method)
     def warpper(self: Any, *args: Any, **kwargs: Any) -> Any:
-        """ _description_
+        """A wrapper function that increments a Redis key and calls the original method.
+
+        This function is used as a decorator to track the number of times a method is called.
+        It increments a Redis key with the qualified name of the method and then calls the original method.
+
+        Args:
+            self (Any): The instance of the class.
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            Any: The return value of the original method.
+
         """
         self._redis.incr(method.__qualname__)
         return method(self, *args, **kwargs)
+
     return warpper
 
-def call_history(method : callable) -> callable:
+
+def call_history(method: callable) -> callable:
     """Decorator that logs the inputs and outputs of a method to Redis.
 
     Args:
@@ -33,8 +48,9 @@ def call_history(method : callable) -> callable:
         callable: The decorated method.
 
     """
+
     @wraps(method)
-    def warpper(self:Any, *args:Any, **kwargs:Any) -> Any:
+    def warpper(self: Any, *args: Any, **kwargs: Any) -> Any:
         """Wrapper function that logs the inputs and outputs of the method.
 
         Args:
@@ -46,11 +62,13 @@ def call_history(method : callable) -> callable:
             Any: The output of the method.
 
         """
-        self._redis.rpush(f'{method.__qualname__}:inputs', str(args))
+        self._redis.rpush(f"{method.__qualname__}:inputs", str(args))
         output = method(self, *args)
-        self._redis.rpush(f'{method.__qualname__}:outputs', output)
+        self._redis.rpush(f"{method.__qualname__}:outputs", output)
         return output
+
     return warpper
+
 
 class Cache:
     """
@@ -109,11 +127,9 @@ class Cache:
         return data
 
     def get_str(self, data: bytes) -> str:
-        """ Converts bytes to string
-        """
-        return data.decode('utf-8')
+        """Converts bytes to string"""
+        return data.decode("utf-8")
 
     def get_int(self, data: bytes) -> int:
-        """ Converts bytes to integers
-        """
+        """Converts bytes to integers"""
         return int(data)
