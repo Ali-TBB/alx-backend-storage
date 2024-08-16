@@ -1,2 +1,2 @@
-// list all databases
---quiet --eval "db.adminCommand('listDatabases')"
+// list all database
+show dbs
